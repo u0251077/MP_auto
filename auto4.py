@@ -1,3 +1,4 @@
+# 系統管理員執行
 # 上下左右 要關閉 Num.
 import ctypes
 import time
@@ -269,13 +270,16 @@ def mypress(key):
         x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['left']))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
         delay = random.uniform(0, 1)
+        mypress('alt')        
         time.sleep(0.05 * (0.8 + 0.4 * delay))
         x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['left'], dwFlags=KEYEVENTF_KEYUP))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
-        time.sleep(0.1 * (0.8 + 0.4 * delay))  
+        time.sleep(2) 
+
         x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['right']))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
         delay = random.uniform(0, 1)
+        mypress('alt')         
         time.sleep(0.05 * (0.8 + 0.4 * delay))
         x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['right'], dwFlags=KEYEVENTF_KEYUP))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
@@ -300,16 +304,119 @@ keys = {
     "end": {"code":'end', "interval": 160, "scan_code": 0xCF, "next_press": 160},
     "w": {"code":'w', "interval": 25, "scan_code": 0x11, "next_press": 25},
     "n": {"code":'n', "interval": 250, "scan_code": 0x31, "next_press": 250},
-    "left_right": {"code":'left_right', "interval": 360, "scan_code": 0x31, "next_press": 360}
+    "left_right": {"code":'left_right', "interval": 100, "scan_code": 0x31, "next_press": 100}
 
 }
 
+import mss
+import mss.tools
+import numpy as np
+import cv2
+import pygetwindow as gw
+
+from PIL import Image
+
+def screen_capture(window_title=None):
+    with mss.mss() as sct:
+        if window_title:
+            try:
+                # Find the window by its title
+                window = gw.getWindowsWithTitle(window_title)[0]
+                monitor = {
+                    "top": window.top,
+                    "left": window.left,
+                    "width": window.width,
+                    "height": window.height,
+                    "mon": window._hWnd
+                }
+            except IndexError:
+                print(f"Window with title '{window_title}' not found.")
+                return None
+        else:
+            monitor = sct.monitors[0]
+
+        sct_img = sct.grab(monitor)
+        img_np = np.array(sct_img)
+        return img_np
+def filter_specific_color_cv(input_img, target_color=(255, 102, 221), tolerance=40):  # BGR format for OpenCV
+    # Convert the image from BGR to RGB
+    img_rgb = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
+    
+    # Create a mask to identify pixels within the tolerance range of the target color
+    mask = ((img_rgb[:, :, 0] > target_color[2] - tolerance) & (img_rgb[:, :, 0] < target_color[2] + tolerance) &
+            (img_rgb[:, :, 1] > target_color[1] - tolerance) & (img_rgb[:, :, 1] < target_color[1] + tolerance) &
+            (img_rgb[:, :, 2] > target_color[0] - tolerance) & (img_rgb[:, :, 2] < target_color[0] + tolerance))
+    
+    # Adjust the mask to match the number of channels in the image (e.g., BGR or BGRA)
+    mask_multi_channel = np.stack([mask]*input_img.shape[2], axis=-1)
+    
+    # Create a white image with the same number of channels as the original image
+    white_img = np.ones_like(input_img) * 255
+    
+    # Apply the mask to keep the target color and set other colors to white
+    result_array = np.where(mask_multi_channel, input_img, white_img)
+    
+    return result_array
+import pygame.mixer
+import time
+
+def play_mp3(file_path):
+    pygame.mixer.init()
+    pygame.mixer.music.load(file_path)
+    pygame.mixer.music.play()
+    
+    # Keep the program running while the music is playing
+    while pygame.mixer.music.get_busy():
+        time.sleep(1)
+
+    pygame.mixer.quit()
+
+
+def filter_specific_color_cv(input_img, target_color=(255, 102, 221), tolerance=40):
+    img_rgb = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
+    mask = ((img_rgb[:, :, 0] > target_color[2] - tolerance) & (img_rgb[:, :, 0] < target_color[2] + tolerance) &
+            (img_rgb[:, :, 1] > target_color[1] - tolerance) & (img_rgb[:, :, 1] < target_color[1] + tolerance) &
+            (img_rgb[:, :, 2] > target_color[0] - tolerance) & (img_rgb[:, :, 2] < target_color[0] + tolerance))
+    mask_multi_channel = np.stack([mask]*input_img.shape[2], axis=-1)
+    white_img = np.ones_like(input_img) * 255
+    result_array = np.where(mask_multi_channel, input_img, white_img)
+    return result_array
+
+def purple_pixel_ratio(input_img, target_color=(255, 102, 221), tolerance=40):
+    filtered_img = filter_specific_color_cv(input_img, target_color, tolerance)
+    gray_filtered = cv2.cvtColor(filtered_img, cv2.COLOR_BGR2GRAY)
+    purple_pixel_count = np.sum(gray_filtered < 255)
+    total_pixels = input_img.shape[0] * input_img.shape[1]
+    ratio = purple_pixel_count / total_pixels
+    return ratio
+
+def contains_purple(input_img, threshold_ratio=0.001):
+    ratio = purple_pixel_ratio(input_img)
+    return ratio > threshold_ratio
+
+def show_current_screen(window_title=None):
+    frame = screen_capture(window_title)
+    print(frame.shape)
+    y=40
+    x=10
+    sub_frame = frame[y:y+125, x:x+180]
+    purple_img = filter_specific_color_cv(sub_frame)
+    contains_purple_flag = contains_purple(purple_img)   
+    if contains_purple_flag == True:
+        # 將RGB轉換為BGR
+        #frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # 使用 opencv 顯示圖像
+        play_mp3('./al.mp3')
+        cv2.imshow("Current Screen", purple_img)
+        cv2.waitKey(1)  # 這裡只等待1毫秒，所以圖像會持續更新
 
 # Infinite loop to keep pressing the keys at the desired intervals
 elapsed_time = 0
 next_dump=60
 alt_down_timer = 0
 while True:
+    show_current_screen("MapleStory")
+
     # Find the next key to be pressed
     next_key, next_data = find_next_key()
     remaining_time = next_data["next_press"] - elapsed_time
