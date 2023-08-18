@@ -266,18 +266,18 @@ def mypress(key):
     n = 1次
     '''
     if key == 'left_right':
-        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP[left]))
+        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['left']))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
         delay = random.uniform(0, 1)
         time.sleep(0.05 * (0.8 + 0.4 * delay))
-        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP[left], dwFlags=KEYEVENTF_KEYUP))
+        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['left'], dwFlags=KEYEVENTF_KEYUP))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
         time.sleep(0.1 * (0.8 + 0.4 * delay))  
-        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP[right]))
+        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['right']))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
         delay = random.uniform(0, 1)
         time.sleep(0.05 * (0.8 + 0.4 * delay))
-        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP[right], dwFlags=KEYEVENTF_KEYUP))
+        x = Input(type=INPUT_KEYBOARD, ki=KeyboardInput(wVk=KEY_MAP['right'], dwFlags=KEYEVENTF_KEYUP))
         user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
         time.sleep(0.1 * (0.8 + 0.4 * delay))          
     else:
